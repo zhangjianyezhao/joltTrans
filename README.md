@@ -2,7 +2,8 @@
 
 Browser-based JOLT transformer published with GitHub Pages.
 
-Supported in this first web version:
+Supported in this first web 
+version:
 
 - `shift`
 - `default`
