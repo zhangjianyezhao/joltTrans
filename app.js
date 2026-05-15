@@ -424,11 +424,11 @@ function applyOperation(input, step) {
 
 function applyShift(input, spec) {
   const output = {};
-  walkShift(input, spec, output, []);
+  walkShift(input, spec, output, [], "");
   return output;
 }
 
-function walkShift(inputNode, specNode, output, captures) {
+function walkShift(inputNode, specNode, output, captures, currentKey) {
   if (typeof specNode === "string") {
     setPath(output, replaceCaptures(specNode, captures), inputNode);
     return;
@@ -447,11 +447,24 @@ function walkShift(inputNode, specNode, output, captures) {
     if (key === "*") {
       if (isObjectLike(inputNode)) {
         for (const [childKey, childValue] of entriesOf(inputNode)) {
-          walkShift(childValue, childSpec, output, [childKey, ...captures]);
+          if (hasOwn(specNode, childKey)) continue;
+          walkShift(childValue, childSpec, output, [childKey, ...captures], childKey);
         }
       }
+    } else if (key === "$") {
+      writeShiftValue(childSpec, output, currentKey, captures);
     } else if (hasOwn(inputNode, key)) {
-      walkShift(inputNode[key], childSpec, output, captures);
+      walkShift(inputNode[key], childSpec, output, captures, key);
+    }
+  }
+}
+
+function writeShiftValue(specNode, output, value, captures) {
+  if (typeof specNode === "string") {
+    setPath(output, replaceCaptures(specNode, captures), value);
+  } else if (Array.isArray(specNode)) {
+    for (const target of specNode) {
+      if (typeof target === "string") setPath(output, replaceCaptures(target, captures), value);
     }
   }
 }
@@ -464,7 +477,11 @@ function applyDefault(input, spec) {
 function mergeDefault(target, spec) {
   if (!isObjectLike(target) || !isPlainObject(spec)) return;
   for (const [key, value] of Object.entries(spec)) {
-    if (!hasOwn(target, key)) {
+    if (key === "*") {
+      for (const [, childValue] of entriesOf(target)) {
+        mergeDefault(childValue, value);
+      }
+    } else if (!hasOwn(target, key)) {
       target[key] = deepClone(value);
     } else if (isObjectLike(target[key]) && isPlainObject(value)) {
       mergeDefault(target[key], value);
@@ -736,7 +753,7 @@ function parsePath(path) {
 
 function replaceCaptures(path, captures) {
   return String(path).replace(/&(\d*)/g, (_, index) => {
-    const captureIndex = index === "" ? 0 : Number(index);
+    const captureIndex = index === "" ? 0 : Math.max(0, Number(index) - 1);
     return captures[captureIndex] ?? "";
   });
 }
@@ -752,10 +769,58 @@ function sortObject(value) {
 
 function parseJson(text, label) {
   try {
-    return JSON.parse(text);
+    return JSON.parse(stripJsonCommentsAndTrailingCommas(text));
   } catch (error) {
     throw new Error(`${label} 不是有效 JSON：${error.message}`);
   }
+}
+
+function stripJsonCommentsAndTrailingCommas(text) {
+  let output = "";
+  let inString = false;
+  let quote = "";
+  let escaped = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    const next = text[i + 1];
+
+    if (inString) {
+      output += char;
+      if (escaped) {
+        escaped = false;
+      } else if (char === "\\") {
+        escaped = true;
+      } else if (char === quote) {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === "\"" || char === "'") {
+      inString = true;
+      quote = char;
+      output += char;
+      continue;
+    }
+
+    if (char === "/" && next === "/") {
+      while (i < text.length && text[i] !== "\n") i += 1;
+      output += "\n";
+      continue;
+    }
+
+    if (char === "/" && next === "*") {
+      i += 2;
+      while (i < text.length && !(text[i] === "*" && text[i + 1] === "/")) i += 1;
+      i += 1;
+      continue;
+    }
+
+    output += char;
+  }
+
+  return output.replace(/,\s*([}\]])/g, "$1");
 }
 
 function pretty(value) {
