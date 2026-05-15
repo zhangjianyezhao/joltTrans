@@ -43,6 +43,7 @@ const state = {
   notesVisible: false,
   stackView: false,
   editorFontSize: 14,
+  syncingEditors: false,
   layout: {
     input: 0.28,
     spec: 0.36,
@@ -223,14 +224,22 @@ function activeTab() {
 
 function loadActiveTabToEditors() {
   const tab = activeTab();
-  els.input.value = tab.input;
-  els.spec.value = tab.spec;
-  els.output.value = tab.output;
-  els.notes.value = tab.notes || "";
-  refreshEditors();
+  state.syncingEditors = true;
+  try {
+    els.input.value = tab.input;
+    els.spec.value = tab.spec;
+    els.output.value = tab.output;
+    els.notes.value = tab.notes || "";
+    refreshEditors();
+  } finally {
+    window.setTimeout(() => {
+      state.syncingEditors = false;
+    }, 0);
+  }
 }
 
 function saveEditorsToActiveTab() {
+  if (state.syncingEditors) return;
   const tab = activeTab();
   tab.input = els.input.value;
   tab.spec = els.spec.value;
