@@ -268,6 +268,8 @@ function applyOperation(input, step) {
       return applyRemove(deepClone(input), step.spec || {});
     case "cardinality":
       return applyCardinality(deepClone(input), step.spec || {});
+    case "modify-overwrite-beta":
+      return applyModifyOverwrite(deepClone(input), step.spec || {});
     case "sort":
       return sortObject(input);
     default:
@@ -328,6 +330,146 @@ function mergeDefault(target, spec) {
 function applyRemove(input, spec) {
   removeBySpec(input, spec);
   return input;
+}
+
+function applyModifyOverwrite(input, spec) {
+  walkModify(input, spec, input, []);
+  return input;
+}
+
+function walkModify(currentNode, specNode, root, captures) {
+  if (!isObjectLike(currentNode) || !isPlainObject(specNode)) return;
+
+  for (const [rawKey, rawValue] of Object.entries(specNode)) {
+    const key = normalizeModifyKey(rawKey);
+
+    if (key === "*") {
+      for (const [childKey, childValue] of entriesOf(currentNode)) {
+        if (isObjectLike(childValue) && isPlainObject(rawValue)) {
+          walkModify(childValue, rawValue, root, [childKey, ...captures]);
+        }
+      }
+      continue;
+    }
+
+    const actualKey = replaceCaptures(key, captures);
+    if (isPlainObject(rawValue)) {
+      if (!isObjectLike(currentNode[actualKey])) {
+        currentNode[actualKey] = {};
+      }
+      walkModify(currentNode[actualKey], rawValue, root, captures);
+    } else {
+      currentNode[actualKey] = evaluateModifyValue(rawValue, currentNode, root, captures);
+    }
+  }
+}
+
+function normalizeModifyKey(key) {
+  return String(key).replace(/^[+~_?]+/, "");
+}
+
+function evaluateModifyValue(value, currentNode, root, captures) {
+  if (typeof value !== "string") return deepClone(value);
+
+  const captured = value.match(/^&(\d*)$/);
+  if (captured) {
+    const index = captured[1] === "" ? 0 : Number(captured[1]);
+    return captures[index] ?? "";
+  }
+
+  const reference = value.match(/^@\((\d+)\s*,\s*([^)]+)\)$/);
+  if (reference) {
+    const upLevels = Number(reference[1]);
+    const path = reference[2].trim();
+    const base = upLevels <= 0 ? currentNode : root;
+    return deepClone(getPath(base, replaceCaptures(path, captures)));
+  }
+
+  if (value.startsWith("=")) {
+    return evaluateModifyFunction(value, currentNode, root, captures);
+  }
+
+  return value;
+}
+
+function evaluateModifyFunction(expression, currentNode, root, captures) {
+  const match = expression.match(/^=([A-Za-z0-9_.$-]+)\((.*)\)$/);
+  if (!match) return expression;
+
+  const name = match[1];
+  const args = splitFunctionArgs(match[2])
+    .map(arg => evaluateModifyArgument(arg, currentNode, root, captures));
+
+  switch (name) {
+    case "concat":
+      return args.map(arg => arg == null ? "" : String(arg)).join("");
+    case "toInteger":
+    case "toLong":
+      return Number.parseInt(args[0], 10);
+    case "toDouble":
+      return Number.parseFloat(args[0]);
+    case "toBoolean":
+      return String(args[0]).toLowerCase() === "true";
+    case "toUpper":
+      return String(args[0] ?? "").toUpperCase();
+    case "toLower":
+      return String(args[0] ?? "").toLowerCase();
+    case "size":
+      if (Array.isArray(args[0]) || typeof args[0] === "string") return args[0].length;
+      if (isPlainObject(args[0])) return Object.keys(args[0]).length;
+      return 0;
+    case "firstElement":
+      return Array.isArray(args[0]) ? args[0][0] : args[0];
+    case "lastElement":
+      return Array.isArray(args[0]) ? args[0][args[0].length - 1] : args[0];
+    default:
+      throw new Error(`尚未支援的 modify-overwrite-beta 函式：=${name}(...)`);
+  }
+}
+
+function evaluateModifyArgument(arg, currentNode, root, captures) {
+  const trimmed = arg.trim();
+  if ((trimmed.startsWith("'") && trimmed.endsWith("'")) || (trimmed.startsWith("\"") && trimmed.endsWith("\""))) {
+    return trimmed.slice(1, -1);
+  }
+  if (trimmed === "true") return true;
+  if (trimmed === "false") return false;
+  if (trimmed === "null") return null;
+  if (/^-?\d+(\.\d+)?$/.test(trimmed)) return Number(trimmed);
+  return evaluateModifyValue(trimmed, currentNode, root, captures);
+}
+
+function splitFunctionArgs(argsText) {
+  const args = [];
+  let current = "";
+  let quote = "";
+  let depth = 0;
+
+  for (let i = 0; i < argsText.length; i += 1) {
+    const char = argsText[i];
+    if (quote) {
+      current += char;
+      if (char === quote && argsText[i - 1] !== "\\") quote = "";
+      continue;
+    }
+    if (char === "'" || char === "\"") {
+      quote = char;
+      current += char;
+      continue;
+    }
+    if (char === "(") depth += 1;
+    if (char === ")") depth -= 1;
+    if (char === "," && depth === 0) {
+      args.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  if (current.trim() || argsText.trim()) {
+    args.push(current.trim());
+  }
+  return args;
 }
 
 function removeBySpec(target, spec) {
@@ -408,6 +550,17 @@ function setPath(target, path, value) {
       cursor = cursor[part];
     }
   }
+}
+
+function getPath(source, path) {
+  if (path === "" || path === "@") return source;
+  const parts = parsePath(path);
+  let cursor = source;
+  for (const part of parts) {
+    if (cursor == null) return undefined;
+    cursor = cursor[part];
+  }
+  return cursor;
 }
 
 function parsePath(path) {
