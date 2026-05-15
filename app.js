@@ -461,6 +461,9 @@ function evaluateModifyFunction(expression, currentNode, root, captures) {
       return String(args[0] ?? "").toUpperCase();
     case "toLower":
       return String(args[0] ?? "").toLowerCase();
+    case "substring":
+    case "subString":
+      return substringValue(args);
     case "size":
       if (Array.isArray(args[0]) || typeof args[0] === "string") return args[0].length;
       if (isPlainObject(args[0])) return Object.keys(args[0]).length;
@@ -472,6 +475,21 @@ function evaluateModifyFunction(expression, currentNode, root, captures) {
     default:
       throw new Error(`尚未支援的 modify-overwrite-beta 函式：=${name}(...)`);
   }
+}
+
+function substringValue(args) {
+  const text = String(args[0] ?? "");
+  const start = normalizeSubstringIndex(args[1], 0, text.length);
+  const end = args.length >= 3
+    ? normalizeSubstringIndex(args[2], text.length, text.length)
+    : text.length;
+  return text.substring(Math.min(start, end), Math.max(start, end));
+}
+
+function normalizeSubstringIndex(value, fallback, length) {
+  const index = Number.parseInt(value, 10);
+  if (Number.isNaN(index)) return fallback;
+  return Math.max(0, Math.min(index, length));
 }
 
 function evaluateModifyArgument(arg, currentNode, root, captures) {
