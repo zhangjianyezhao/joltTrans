@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>joltTrans - JOLT 網頁轉換工具</title>
+  <meta name="description" content="在瀏覽器中執行 JOLT JSON 轉換，支援多分頁、UTF-8 中文與 SystemDate 自訂轉換。">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">joltTrans</p>
+      <h1>JOLT 網頁轉換工具</h1>
+    </div>
+    <div class="toolbar">
+      <button id="addTabBtn" type="button">新增分頁</button>
+      <button id="renameTabBtn" type="button">重新命名</button>
+      <button id="duplicateTabBtn" type="button">複製分頁</button>
+      <button id="closeTabBtn" type="button">關閉分頁</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <nav id="tabs" class="tabs" aria-label="JOLT 分頁"></nav>
+
+    <section class="actions">
+      <button id="transformBtn" type="button" class="primary">轉換目前分頁</button>
+      <button id="transformAllBtn" type="button">全部轉換</button>
+      <button id="formatBtn" type="button">格式化</button>
+      <button id="sampleBtn" type="button">載入範例</button>
+      <button id="copyBtn" type="button">複製輸出</button>
+      <button id="downloadBtn" type="button">下載輸出</button>
+      <label class="file-button">
+        匯入輸入 JSON
+        <input id="inputFile" type="file" accept=".json,application/json">
+      </label>
+      <label class="file-button">
+        匯入 JOLT Spec
+        <input id="specFile" type="file" accept=".json,application/json">
+      </label>
+    </section>
+
+    <section class="editor-grid">
+      <article class="pane">
+        <div class="pane-title">
+          <h2>輸入 JSON</h2>
+          <span>Input</span>
+        </div>
+        <textarea id="inputEditor" spellcheck="false"></textarea>
+      </article>
+
+      <article class="pane">
+        <div class="pane-title">
+          <h2>JOLT Spec</h2>
+          <span>Spec</span>
+        </div>
+        <textarea id="specEditor" spellcheck="false"></textarea>
+      </article>
+
+      <article class="pane">
+        <div class="pane-title">
+          <h2>輸出 JSON</h2>
+          <span>Output</span>
+        </div>
+        <textarea id="outputEditor" spellcheck="false" readonly></textarea>
+      </article>
+    </section>
+
+    <section class="status-row">
+      <p id="status">就緒。所有轉換都在你的瀏覽器本機執行，不會上傳 JSON。</p>
+      <details>
+        <summary>支援說明</summary>
+        <p>目前支援常用 JOLT operation：shift、default、remove、cardinality、sort，以及 SystemDate 自訂轉換。若你的正式規格使用更進階的 JOLT 語法，請提供範例 input/spec/output，我可以再補齊。</p>
+      </details>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
