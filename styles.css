@@ -9,6 +9,7 @@
   --green: #21865f;
   --red: #b74444;
   --shadow: 0 12px 32px rgba(28, 43, 61, 0.12);
+  --editor-font-size: 14px;
 }
 
 * {
@@ -117,6 +118,20 @@ h1 {
   box-shadow: var(--shadow);
 }
 
+.collapsed-strip {
+  width: 100%;
+  height: 42px;
+  margin-bottom: 14px;
+  color: var(--blue);
+  border-color: var(--blue);
+  background: #eef7ff;
+  font-weight: 700;
+}
+
+.collapsed-strip.hidden {
+  display: none;
+}
+
 .file-button {
   display: inline-flex;
   align-items: center;
@@ -163,6 +178,22 @@ h1 {
 
 .editor-grid.input-collapsed {
   grid-template-columns: 0 0 minmax(360px, var(--spec-col)) 8px minmax(360px, var(--output-col));
+}
+
+.editor-grid.stack-view {
+  grid-template-columns: 1fr;
+}
+
+.editor-grid.stack-view .resize-handle {
+  display: none;
+}
+
+.editor-grid.stack-view .pane {
+  min-height: 46vh;
+}
+
+.editor-grid.stack-view.input-collapsed #inputPane {
+  display: none;
 }
 
 .editor-grid.input-collapsed #inputPane,
@@ -220,7 +251,7 @@ textarea {
   padding: 14px;
   color: #1d2735;
   background: #fbfcfe;
-  font: 14px/1.55 Consolas, "Microsoft JhengHei UI", monospace;
+  font: var(--editor-font-size)/1.55 Consolas, "Microsoft JhengHei UI", monospace;
 }
 
 #outputEditor {
@@ -232,7 +263,7 @@ textarea {
   height: auto;
   border-radius: 0 0 8px 8px;
   background: #fbfcfe;
-  font: 14px/1.55 Consolas, "Microsoft JhengHei UI", monospace;
+  font: var(--editor-font-size)/1.55 Consolas, "Microsoft JhengHei UI", monospace;
 }
 
 .CodeMirror-scroll {

@@ -31,6 +31,11 @@
       <button id="transformAllBtn" type="button">全部轉換</button>
       <button id="formatBtn" type="button">美化格式</button>
       <button id="toggleInputBtn" type="button">收合輸入 JSON</button>
+      <button id="toggleStackBtn" type="button">上下檢視</button>
+      <button id="decreaseFontBtn" type="button">A-</button>
+      <button id="increaseFontBtn" type="button">A+</button>
+      <button id="widenSpecBtn" type="button">Spec 寬</button>
+      <button id="widenOutputBtn" type="button">Output 寬</button>
       <button id="toggleNotesBtn" type="button">顯示註解</button>
       <button id="sampleBtn" type="button">載入範例</button>
       <button id="copyBtn" type="button">複製輸出</button>
@@ -44,6 +49,8 @@
         <input id="specFile" type="file" accept=".json,application/json">
       </label>
     </section>
+
+    <button id="inputCollapsedStrip" class="collapsed-strip hidden" type="button">輸入 JSON 已收合，點此展開</button>
 
     <section id="notesPanel" class="notes-panel hidden">
       <div class="pane-title">

@@ -41,10 +41,12 @@ const state = {
   nextId: 1,
   inputCollapsed: false,
   notesVisible: false,
+  stackView: false,
+  editorFontSize: 14,
   layout: {
-    input: 1,
-    spec: 1,
-    output: 1
+    input: 0.28,
+    spec: 0.36,
+    output: 0.36
   }
 };
 
@@ -58,6 +60,8 @@ const els = {
   notesPanel: document.getElementById("notesPanel"),
   toggleInput: document.getElementById("toggleInputBtn"),
   toggleNotes: document.getElementById("toggleNotesBtn"),
+  toggleStack: document.getElementById("toggleStackBtn"),
+  inputCollapsedStrip: document.getElementById("inputCollapsedStrip"),
   status: document.getElementById("status")
 };
 
@@ -71,6 +75,12 @@ document.getElementById("transformBtn").addEventListener("click", transformActiv
 document.getElementById("transformAllBtn").addEventListener("click", transformAllTabs);
 document.getElementById("formatBtn").addEventListener("click", formatActiveTab);
 document.getElementById("toggleInputBtn").addEventListener("click", toggleInputPane);
+document.getElementById("inputCollapsedStrip").addEventListener("click", toggleInputPane);
+document.getElementById("toggleStackBtn").addEventListener("click", toggleStackView);
+document.getElementById("decreaseFontBtn").addEventListener("click", () => changeEditorFontSize(-1));
+document.getElementById("increaseFontBtn").addEventListener("click", () => changeEditorFontSize(1));
+document.getElementById("widenSpecBtn").addEventListener("click", () => adjustSpecOutputRatio(0.08));
+document.getElementById("widenOutputBtn").addEventListener("click", () => adjustSpecOutputRatio(-0.08));
 document.getElementById("toggleNotesBtn").addEventListener("click", toggleNotesPanel);
 document.getElementById("sampleBtn").addEventListener("click", loadSample);
 document.getElementById("copyBtn").addEventListener("click", copyOutput);
@@ -286,7 +296,27 @@ function loadSample() {
 function toggleInputPane() {
   state.inputCollapsed = !state.inputCollapsed;
   applyLayout();
-  setStatus(state.inputCollapsed ? "已收合輸入 JSON，方便閱讀 Spec 與 Output" : "已展開輸入 JSON", "ok");
+  setStatus(state.inputCollapsed ? "已收合輸入 JSON，現在可專注閱讀 Spec 與 Output" : "已展開輸入 JSON", "ok");
+}
+
+function toggleStackView() {
+  state.stackView = !state.stackView;
+  applyLayout();
+  setStatus(state.stackView ? "已切換成上下檢視，適合閱讀長內容" : "已切換成左右檢視", "ok");
+}
+
+function changeEditorFontSize(delta) {
+  state.editorFontSize = clamp(state.editorFontSize + delta, 11, 24);
+  applyLayout();
+  setStatus(`編輯器字體大小：${state.editorFontSize}px`, "ok");
+}
+
+function adjustSpecOutputRatio(delta) {
+  const base = state.inputCollapsed ? 0 : state.layout.input;
+  const available = 1 - base;
+  state.layout.spec = clamp(state.layout.spec + delta, 0.18, available - 0.18);
+  state.layout.output = available - state.layout.spec;
+  applyLayout();
 }
 
 function toggleNotesPanel() {
@@ -320,7 +350,7 @@ function setupResizeHandle(handle, mode) {
       }
       if (mode === "spec") {
         const base = state.inputCollapsed ? 0 : state.layout.input;
-        const available = Math.max(0.2, 1 - base);
+        const available = Math.max(0.36, 1 - base);
         const spec = clamp((x / rect.width) - base, 0.18, available - 0.18);
         state.layout.spec = spec;
         state.layout.output = available - spec;
@@ -342,14 +372,25 @@ function setupResizeHandle(handle, mode) {
 
 function applyLayout() {
   els.editorGrid.classList.toggle("input-collapsed", state.inputCollapsed);
+  els.editorGrid.classList.toggle("stack-view", state.stackView);
   els.notesPanel.classList.toggle("hidden", !state.notesVisible);
+  els.inputCollapsedStrip.classList.toggle("hidden", !state.inputCollapsed);
   els.toggleInput.textContent = state.inputCollapsed ? "展開輸入 JSON" : "收合輸入 JSON";
+  els.toggleStack.textContent = state.stackView ? "左右檢視" : "上下檢視";
   els.toggleNotes.textContent = state.notesVisible ? "隱藏註解" : "顯示註解";
 
-  const total = Math.max(0.1, state.layout.input + state.layout.spec + state.layout.output);
-  els.editorGrid.style.setProperty("--input-col", `${state.layout.input / total}fr`);
-  els.editorGrid.style.setProperty("--spec-col", `${state.layout.spec / total}fr`);
-  els.editorGrid.style.setProperty("--output-col", `${state.layout.output / total}fr`);
+  if (state.inputCollapsed) {
+    const total = Math.max(0.1, state.layout.spec + state.layout.output);
+    els.editorGrid.style.setProperty("--input-col", "0fr");
+    els.editorGrid.style.setProperty("--spec-col", `${state.layout.spec / total}fr`);
+    els.editorGrid.style.setProperty("--output-col", `${state.layout.output / total}fr`);
+  } else {
+    const total = Math.max(0.1, state.layout.input + state.layout.spec + state.layout.output);
+    els.editorGrid.style.setProperty("--input-col", `${state.layout.input / total}fr`);
+    els.editorGrid.style.setProperty("--spec-col", `${state.layout.spec / total}fr`);
+    els.editorGrid.style.setProperty("--output-col", `${state.layout.output / total}fr`);
+  }
+  document.documentElement.style.setProperty("--editor-font-size", `${state.editorFontSize}px`);
   refreshEditors();
 }
 
