@@ -38,14 +38,26 @@ const sampleSpec = `[
 const state = {
   tabs: [],
   activeId: null,
-  nextId: 1
+  nextId: 1,
+  inputCollapsed: false,
+  notesVisible: false,
+  layout: {
+    input: 1,
+    spec: 1,
+    output: 1
+  }
 };
 
 const els = {
   tabs: document.getElementById("tabs"),
+  editorGrid: document.getElementById("editorGrid"),
   input: document.getElementById("inputEditor"),
   spec: document.getElementById("specEditor"),
   output: document.getElementById("outputEditor"),
+  notes: document.getElementById("notesEditor"),
+  notesPanel: document.getElementById("notesPanel"),
+  toggleInput: document.getElementById("toggleInputBtn"),
+  toggleNotes: document.getElementById("toggleNotesBtn"),
   status: document.getElementById("status")
 };
 
@@ -58,16 +70,20 @@ document.getElementById("closeTabBtn").addEventListener("click", closeActiveTab)
 document.getElementById("transformBtn").addEventListener("click", transformActiveTab);
 document.getElementById("transformAllBtn").addEventListener("click", transformAllTabs);
 document.getElementById("formatBtn").addEventListener("click", formatActiveTab);
+document.getElementById("toggleInputBtn").addEventListener("click", toggleInputPane);
+document.getElementById("toggleNotesBtn").addEventListener("click", toggleNotesPanel);
 document.getElementById("sampleBtn").addEventListener("click", loadSample);
 document.getElementById("copyBtn").addEventListener("click", copyOutput);
 document.getElementById("downloadBtn").addEventListener("click", downloadOutput);
 document.getElementById("inputFile").addEventListener("change", event => importFile(event, "input"));
 document.getElementById("specFile").addEventListener("change", event => importFile(event, "spec"));
 
-for (const editor of [els.input, els.spec, els.output]) {
+for (const editor of [els.input, els.spec, els.output, els.notes]) {
   editor.addEventListener("input", saveEditorsToActiveTab);
 }
 
+setupResizableLayout();
+applyLayout();
 addTab("範例 JOLT", sampleInput, sampleSpec, "");
 
 function setupJsonEditors() {
@@ -118,13 +134,14 @@ function addTabFromPrompt() {
   addTab(cleanTitle(title, `JOLT ${state.nextId}`), sampleInput, sampleSpec, "");
 }
 
-function addTab(title, input = "", spec = "", output = "") {
+function addTab(title, input = "", spec = "", output = "", notes = "") {
   const tab = {
     id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
     title,
     input,
     spec,
-    output
+    output,
+    notes
   };
   state.tabs.push(tab);
   state.nextId += 1;
@@ -148,7 +165,7 @@ function duplicateActiveTab() {
   const tab = activeTab();
   const title = prompt("請輸入複製分頁名稱", `${tab.title} Copy`);
   if (title === null) return;
-  addTab(cleanTitle(title, `${tab.title} Copy`), tab.input, tab.spec, tab.output);
+  addTab(cleanTitle(title, `${tab.title} Copy`), tab.input, tab.spec, tab.output, tab.notes);
 }
 
 function closeActiveTab() {
@@ -157,6 +174,7 @@ function closeActiveTab() {
     tab.input = "";
     tab.spec = "";
     tab.output = "";
+    tab.notes = "";
     loadActiveTabToEditors();
     setStatus("已清空最後一個分頁", "ok");
     return;
@@ -198,6 +216,8 @@ function loadActiveTabToEditors() {
   els.input.value = tab.input;
   els.spec.value = tab.spec;
   els.output.value = tab.output;
+  els.notes.value = tab.notes || "";
+  refreshEditors();
 }
 
 function saveEditorsToActiveTab() {
@@ -205,6 +225,7 @@ function saveEditorsToActiveTab() {
   tab.input = els.input.value;
   tab.spec = els.spec.value;
   tab.output = els.output.value;
+  tab.notes = els.notes.value;
 }
 
 function transformActiveTab() {
@@ -257,8 +278,85 @@ function loadSample() {
   tab.input = sampleInput;
   tab.spec = sampleSpec;
   tab.output = "";
+  tab.notes = "範例：示範 SystemDate + shift，包含中文 UTF-8 測試資料。";
   loadActiveTabToEditors();
   setStatus("已載入 UTF-8 中文範例", "ok");
+}
+
+function toggleInputPane() {
+  state.inputCollapsed = !state.inputCollapsed;
+  applyLayout();
+  setStatus(state.inputCollapsed ? "已收合輸入 JSON，方便閱讀 Spec 與 Output" : "已展開輸入 JSON", "ok");
+}
+
+function toggleNotesPanel() {
+  state.notesVisible = !state.notesVisible;
+  applyLayout();
+  setStatus(state.notesVisible ? "已顯示分頁註解" : "已隱藏分頁註解", "ok");
+}
+
+function setupResizableLayout() {
+  setupResizeHandle(document.getElementById("inputResize"), "input");
+  setupResizeHandle(document.getElementById("specResize"), "spec");
+}
+
+function setupResizeHandle(handle, mode) {
+  if (!handle) return;
+  handle.addEventListener("pointerdown", event => {
+    event.preventDefault();
+    handle.setPointerCapture(event.pointerId);
+    handle.classList.add("dragging");
+    const rect = els.editorGrid.getBoundingClientRect();
+
+    const move = moveEvent => {
+      const x = Math.max(0, Math.min(rect.width, moveEvent.clientX - rect.left));
+      if (mode === "input" && !state.inputCollapsed) {
+        const input = clamp(x / rect.width, 0.16, 0.52);
+        const remaining = 1 - input;
+        const specOutput = state.layout.spec + state.layout.output || 2;
+        state.layout.input = input;
+        state.layout.spec = remaining * (state.layout.spec / specOutput);
+        state.layout.output = remaining * (state.layout.output / specOutput);
+      }
+      if (mode === "spec") {
+        const base = state.inputCollapsed ? 0 : state.layout.input;
+        const available = Math.max(0.2, 1 - base);
+        const spec = clamp((x / rect.width) - base, 0.18, available - 0.18);
+        state.layout.spec = spec;
+        state.layout.output = available - spec;
+      }
+      applyLayout();
+    };
+
+    const up = upEvent => {
+      handle.releasePointerCapture(upEvent.pointerId);
+      handle.classList.remove("dragging");
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  });
+}
+
+function applyLayout() {
+  els.editorGrid.classList.toggle("input-collapsed", state.inputCollapsed);
+  els.notesPanel.classList.toggle("hidden", !state.notesVisible);
+  els.toggleInput.textContent = state.inputCollapsed ? "展開輸入 JSON" : "收合輸入 JSON";
+  els.toggleNotes.textContent = state.notesVisible ? "隱藏註解" : "顯示註解";
+
+  const total = Math.max(0.1, state.layout.input + state.layout.spec + state.layout.output);
+  els.editorGrid.style.setProperty("--input-col", `${state.layout.input / total}fr`);
+  els.editorGrid.style.setProperty("--spec-col", `${state.layout.spec / total}fr`);
+  els.editorGrid.style.setProperty("--output-col", `${state.layout.output / total}fr`);
+  refreshEditors();
+}
+
+function refreshEditors() {
+  for (const editor of [els.input, els.spec, els.output]) {
+    if (editor.editor) window.setTimeout(() => editor.editor.refresh(), 0);
+  }
 }
 
 async function copyOutput() {
@@ -692,6 +790,10 @@ function isArrayIndex(value) {
 function cleanTitle(value, fallback) {
   const title = String(value || "").trim();
   return title || fallback;
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
 }
 
 function setStatus(message, type = "") {

@@ -130,10 +130,44 @@ h1 {
   cursor: pointer;
 }
 
+.notes-panel {
+  display: flex;
+  min-height: 170px;
+  flex-direction: column;
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.notes-panel.hidden {
+  display: none;
+}
+
+#notesEditor {
+  min-height: 118px;
+  flex: 1;
+  background: #fffdf7;
+  font-family: "Microsoft JhengHei UI", "Microsoft JhengHei", system-ui, sans-serif;
+}
+
 .editor-grid {
+  --input-col: minmax(260px, 1fr);
+  --spec-col: minmax(320px, 1fr);
+  --output-col: minmax(320px, 1fr);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: var(--input-col) 8px var(--spec-col) 8px var(--output-col);
+  gap: 8px;
+}
+
+.editor-grid.input-collapsed {
+  grid-template-columns: 0 0 minmax(360px, var(--spec-col)) 8px minmax(360px, var(--output-col));
+}
+
+.editor-grid.input-collapsed #inputPane,
+.editor-grid.input-collapsed #inputResize {
+  display: none;
 }
 
 .pane {
@@ -144,6 +178,18 @@ h1 {
   border-radius: 8px;
   background: var(--panel);
   box-shadow: var(--shadow);
+}
+
+.resize-handle {
+  min-height: calc(100vh - 270px);
+  border-radius: 8px;
+  cursor: col-resize;
+  background: linear-gradient(90deg, transparent, #c7d3df, transparent);
+}
+
+.resize-handle:hover,
+.resize-handle.dragging {
+  background: var(--blue);
 }
 
 .pane-title {
@@ -267,6 +313,14 @@ details p {
 
   .editor-grid,
   .status-row {
+    grid-template-columns: 1fr;
+  }
+
+  .resize-handle {
+    display: none;
+  }
+
+  .editor-grid.input-collapsed {
     grid-template-columns: 1fr;
   }
 

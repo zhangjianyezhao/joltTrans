@@ -30,6 +30,8 @@
       <button id="transformBtn" type="button" class="primary">轉換目前分頁</button>
       <button id="transformAllBtn" type="button">全部轉換</button>
       <button id="formatBtn" type="button">美化格式</button>
+      <button id="toggleInputBtn" type="button">收合輸入 JSON</button>
+      <button id="toggleNotesBtn" type="button">顯示註解</button>
       <button id="sampleBtn" type="button">載入範例</button>
       <button id="copyBtn" type="button">複製輸出</button>
       <button id="downloadBtn" type="button">下載輸出</button>
@@ -43,14 +45,24 @@
       </label>
     </section>
 
-    <section class="editor-grid">
-      <article class="pane">
+    <section id="notesPanel" class="notes-panel hidden">
+      <div class="pane-title">
+        <h2>分頁註解</h2>
+        <span>Notes</span>
+      </div>
+      <textarea id="notesEditor" spellcheck="false" placeholder="可記錄這個 JOLT 的用途、測試資料來源、注意事項或待確認問題。"></textarea>
+    </section>
+
+    <section id="editorGrid" class="editor-grid">
+      <article id="inputPane" class="pane">
         <div class="pane-title">
           <h2>輸入 JSON</h2>
           <span>Input</span>
         </div>
         <textarea id="inputEditor" spellcheck="false"></textarea>
       </article>
+
+      <div id="inputResize" class="resize-handle" aria-hidden="true"></div>
 
       <article class="pane">
         <div class="pane-title">
@@ -59,6 +71,8 @@
         </div>
         <textarea id="specEditor" spellcheck="false"></textarea>
       </article>
+
+      <div id="specResize" class="resize-handle" aria-hidden="true"></div>
 
       <article class="pane">
         <div class="pane-title">
