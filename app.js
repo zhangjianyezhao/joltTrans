@@ -49,6 +49,8 @@ const els = {
   status: document.getElementById("status")
 };
 
+setupJsonEditors();
+
 document.getElementById("addTabBtn").addEventListener("click", addTabFromPrompt);
 document.getElementById("renameTabBtn").addEventListener("click", renameActiveTab);
 document.getElementById("duplicateTabBtn").addEventListener("click", duplicateActiveTab);
@@ -67,6 +69,48 @@ for (const editor of [els.input, els.spec, els.output]) {
 }
 
 addTab("範例 JOLT", sampleInput, sampleSpec, "");
+
+function setupJsonEditors() {
+  if (!window.CodeMirror) return;
+
+  els.input = createJsonEditor(els.input);
+  els.spec = createJsonEditor(els.spec);
+  els.output = createJsonEditor(els.output, true);
+}
+
+function createJsonEditor(textarea, readOnly = false) {
+  const editor = CodeMirror.fromTextArea(textarea, {
+    mode: { name: "javascript", json: true },
+    theme: "eclipse",
+    lineNumbers: true,
+    lineWrapping: false,
+    tabSize: 2,
+    indentUnit: 2,
+    readOnly,
+    viewportMargin: 50,
+    matchBrackets: true,
+    autoCloseBrackets: true
+  });
+
+  return {
+    get value() {
+      return editor.getValue();
+    },
+    set value(value) {
+      editor.setValue(value || "");
+      window.setTimeout(() => editor.refresh(), 0);
+    },
+    addEventListener(type, listener) {
+      if (type === "input") {
+        editor.on("change", listener);
+      }
+    },
+    focus() {
+      editor.focus();
+    },
+    editor
+  };
+}
 
 function addTabFromPrompt() {
   const title = prompt("請輸入分頁名稱", `JOLT ${state.nextId}`);
@@ -198,8 +242,11 @@ function formatActiveTab() {
   try {
     els.input.value = pretty(parseJson(els.input.value || "{}", "輸入 JSON"));
     els.spec.value = pretty(parseJson(els.spec.value || "[]", "JOLT Spec"));
+    if (els.output.value.trim()) {
+      els.output.value = pretty(parseJson(els.output.value, "輸出 JSON"));
+    }
     saveEditorsToActiveTab();
-    setStatus("目前分頁已格式化", "ok");
+    setStatus("目前分頁已美化格式", "ok");
   } catch (error) {
     setStatus(error.message, "error");
   }

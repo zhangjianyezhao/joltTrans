@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>joltTrans - JOLT 網頁轉換工具</title>
   <meta name="description" content="在瀏覽器中執行 JOLT JSON 轉換，支援多分頁、UTF-8 中文與 SystemDate 自訂轉換。">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/eclipse.min.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -27,7 +29,7 @@
     <section class="actions">
       <button id="transformBtn" type="button" class="primary">轉換目前分頁</button>
       <button id="transformAllBtn" type="button">全部轉換</button>
-      <button id="formatBtn" type="button">格式化</button>
+      <button id="formatBtn" type="button">美化格式</button>
       <button id="sampleBtn" type="button">載入範例</button>
       <button id="copyBtn" type="button">複製輸出</button>
       <button id="downloadBtn" type="button">下載輸出</button>
@@ -76,6 +78,8 @@
     </section>
   </main>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

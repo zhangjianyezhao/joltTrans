@@ -181,6 +181,53 @@ textarea {
   background: #f8fbf9;
 }
 
+.CodeMirror {
+  flex: 1;
+  height: auto;
+  border-radius: 0 0 8px 8px;
+  background: #fbfcfe;
+  font: 14px/1.55 Consolas, "Microsoft JhengHei UI", monospace;
+}
+
+.CodeMirror-scroll {
+  min-height: 100%;
+}
+
+.CodeMirror-gutters {
+  border-right: 1px solid var(--line);
+  background: #f2f5f8;
+}
+
+.CodeMirror-linenumber {
+  color: #94a3b8;
+}
+
+.cm-s-eclipse span.cm-property {
+  color: #1769aa;
+  font-weight: 700;
+}
+
+.cm-s-eclipse span.cm-string {
+  color: #19865d;
+}
+
+.cm-s-eclipse span.cm-number {
+  color: #b66f14;
+}
+
+.cm-s-eclipse span.cm-atom {
+  color: #8a4cb8;
+}
+
+.cm-s-eclipse span.cm-punctuation,
+.cm-s-eclipse span.cm-bracket {
+  color: #66758a;
+}
+
+.pane:has(#outputEditor) .CodeMirror {
+  background: #f8fbf9;
+}
+
 .status-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
